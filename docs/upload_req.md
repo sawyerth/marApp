@@ -11,8 +11,8 @@ Although shinyapps.io is secure-by-design, users should avoid uploading sensitiv
 1. Files should be tab-delimited or comma-delimited.
 2. Allowed file extensions are ".txt", ".txt.gz", ".csv", ".csv.gz", ".tsv", ".tsv.gz".
 3. The first line should consist of three columns: `ID`,`LON`,`LAT`.
-    1. If VCF genotype file is provided, the `ID` column should match the sample IDs in the VCF file.
-    2. If text genotype file is provided, the `ID` column should be sequential integers starting from 1. Please make sure that the samples are in the same order as the genotype file.
+   1. If VCF genotype file is provided, the `ID` column should match the sample IDs in the VCF file.
+   2. If text genotype file is provided, the `ID` column should be sequential integers starting from 1. Please make sure that the samples are in the same order as the genotype file.
 4. No missing values allowed.
 
 Example file with 5 samples:
@@ -31,18 +31,19 @@ ID	LON	LAT
 Text file and VCF files are allowed. Overall,
 
 - The pipeline requires bi-allelic SNP genotype data.
-    - Example `bcftools` command: `bcftools view -m2 -M2 -v snps ${VCF}`
-- The genotype data must not contain any missing values.
-    - You can use tools like [beagle](https://faculty.washington.edu/browning/beagle/beagle.html) to impute missing data.
-    - You can also filter the genotype data to retain only sites without missing data, e.g., `bcftools view -i 'N_MISSING == 0' ${VCF}`.
+  - Example `bcftools` command: `bcftools view -m2 -M2 -v snps ${VCF}`
+- The genotype data can contain any missing values.
+  - Metrics for missing data are computed in accordance to [pixy](https://github.com/ksamuk/pixy)
+  - Alternativly, you can use tools like [beagle](https://faculty.washington.edu/browning/beagle/beagle.html) to impute missing data.
+  - You can also filter the genotype data to retain only sites without missing data, e.g., `bcftools view -i 'N_MISSING == 0' ${VCF}`.
 - The `marApp` only supports diploid organisms. For handling of other ploidy, please use the `mar` R package.
 - If the reference genome is divergent from the species/population of interest, set the major allele as the reference allele to avoid issues with ancestral state identification.
 
-*Text genotype file*
+_Text genotype file_
 
 1. Files should be tab-delimited or comma-delimited.
 2. Allowed file extensions are ".txt", ".txt.gz", ".csv", ".csv.gz", ".tsv", ".tsv.gz".
-    1. For large files, it is recommended to compress the file with `gzip`.
+   1. For large files, it is recommended to compress the file with `gzip`.
 3. No row or column names are allowed. Rows should be SNPs and columns should be samples.
 4. Values in the file should be `0/1/.../ploidy`. In diploid organisms, the values can only be 0 or 1 or 2. Where values represent the number of alternative alleles for each genotype.
 5. In the example below, the value of 1 at row 2 and column 3 represents that sample NO.3 has one copy of the alternative allele at SNP NO.2.
@@ -61,16 +62,3 @@ Example file with 5 samples and 10 SNPs:
 1	2	0	1	2
 0	0	2	0	0
 ```
-
-*VCF genotype file*
-
-1. Any standard VCF files are allowed as long as they follow the specifications below.
-2. VCF file handling is enabled by the `SeqArray` package.
-
-*Notes on PLINK genotype file*
-
-1. PLINK genotype files are current not supported on the `marApp` platform but can be used with the `mar` package.
-
-
-
-

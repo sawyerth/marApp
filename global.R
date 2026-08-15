@@ -12,7 +12,6 @@ library(dplyr)
 library(reshape2)
 
 # library(sads)
-library(SeqArray)
 library(sf)
 library(terra)
 library(mar)
