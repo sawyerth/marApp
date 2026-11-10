@@ -12,8 +12,7 @@ The hosted version of `marApp` is available on [shinyapps.io](https://www.shinya
    ```r
    install.packages(c("shiny", "shinydashboard", "shinyWidgets", "markdown",
                        "leaflet", "DT", "plotly", "ggplot2", "dplyr", "reshape2",
-                       "sf", "raster"))
-   if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+                       "sf", "terra", "remotes"))
    remotes::install_github("meixilin/mar")
    ```
 2. Clone or download this repository, then launch the app from within the `marApp` directory:
