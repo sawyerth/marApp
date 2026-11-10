@@ -168,6 +168,13 @@ body <- dashboardBody(
                         min = 1,
                         max = 20
                     ),
+                    numericInput(
+                        inputId = "seed",
+                        label = "Random seed (optional; leave blank to draw one at random):",
+                        value = NA,
+                        min = 1,
+                        step = 1
+                    ),
                     actionButton("go3", "Calculate MAR/GDAR", width = 150)
                 )
             ),
@@ -185,6 +192,8 @@ body <- dashboardBody(
                         title = "Summary of MAR/GDAR",
                         width = 12,
                         DT::dataTableOutput("print_marres"),
+                        helpText("2.5% and 97.5% columns give the 95% confidence interval of each parameter."),
+                        helpText(textOutput("seed_used_mar", inline = TRUE)),
                         downloadButton("download_mardf", "Download data")
                     )
                 ),
@@ -237,6 +246,13 @@ body <- dashboardBody(
                         min = 1,
                         max = 20
                     ),
+                    numericInput(
+                        inputId = "seed_ext",
+                        label = "Random seed (optional; leave blank to draw one at random):",
+                        value = NA,
+                        min = 1,
+                        step = 1
+                    ),
                     actionButton("go4", "Simulate extinction", width = 150)
                 )
             ),
@@ -254,6 +270,8 @@ body <- dashboardBody(
                         title = "Summary of MAR/GDAR extinction",
                         width = 12,
                         DT::dataTableOutput("print_extres"),
+                        helpText("2.5% and 97.5% columns give the 95% confidence interval of each parameter."),
+                        helpText(textOutput("seed_used_ext", inline = TRUE)),
                         downloadButton("download_extdf", "Download data")
                     )
                 ),

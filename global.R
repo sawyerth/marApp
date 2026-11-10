@@ -196,3 +196,71 @@ con_report_save <- function(est, file) {
     )
     htmltools::save_html(page, file)
 }
+
+#######################################################################
+# MAR fits with 95% confidence intervals
+
+# Summarize one sars::sar_power() fit: estimates, 95% CIs, p-values, adj. R2.
+# Returns a row of NAs if the fit failed (MARcalc returns NULL).
+mar_fit_summary <- function(mar) {
+    out <- data.frame(
+        model = NA_character_, c = NA_real_, c_lo = NA_real_, c_hi = NA_real_,
+        z = NA_real_, z_lo = NA_real_, z_hi = NA_real_,
+        c_p = NA_real_, z_p = NA_real_, R2_adj = NA_real_,
+        stringsAsFactors = FALSE
+    )
+    tryCatch(
+        {
+            s <- summary(mar)
+            pp <- s$Parameters
+            out$model <- s$Model
+            out[c("c", "c_lo", "c_hi")] <- unlist(pp[1, c("Estimate", "2.5%", "97.5%")])
+            out[c("z", "z_lo", "z_hi")] <- unlist(pp[2, c("Estimate", "2.5%", "97.5%")])
+            out$c_p <- pp[[1, "Pr(>|t|)"]]
+            out$z_p <- pp[[2, "Pr(>|t|)"]]
+            out$R2_adj <- s$R2a
+            out
+        },
+        error = function(e) out
+    )
+}
+
+# Fit the MAR for each diversity metric in `mtypes`; one row per metric.
+mar_fit_table <- function(mardf, mtypes, atype) {
+    obj <- do.call(rbind, lapply(mtypes, function(x) {
+        mar_fit_summary(mar::MARcalc(mardf, Mtype = x, Atype = atype))
+    }))
+    rownames(obj) <- mtypes
+    obj
+}
+
+# Render a mar_fit_table() as a DT table with readable labels.
+mar_fit_datatable <- function(df) {
+    rownames(df) <- sapply(rownames(df), function(cd) names(Mchoices)[Mchoices == cd])
+    DT::datatable(df,
+        colnames = c(
+            "Diversity metric" = "model",
+            "c" = "c", "c 2.5%" = "c_lo", "c 97.5%" = "c_hi",
+            "z" = "z", "z 2.5%" = "z_lo", "z 97.5%" = "z_hi",
+            "c p-value" = "c_p", "z p-value" = "z_p", "Adjusted R²" = "R2_adj"
+        ),
+        options = list(scrollX = TRUE)
+    ) %>%
+        DT::formatSignif(c("c", "c 2.5%", "c 97.5%"), digits = 4) %>%
+        DT::formatRound(c("z", "z 2.5%", "z 97.5%", "Adjusted R²"), digits = 3) %>%
+        DT::formatSignif(c("c p-value", "z p-value"))
+}
+
+#######################################################################
+# Reproducibility: an empty seed box draws a fresh seed, which is reported
+# back to the user so any run can be repeated exactly.
+resolve_seed <- function(x) {
+    if (is.null(x) || is.na(x)) sample.int(.Machine$integer.max, 1) else as.integer(x)
+}
+
+seed_note <- function(seed) {
+    paste0(
+        "Random seed used: ", seed,
+        ". Enter this seed above (with the same data and settings) to reproduce these results exactly."
+    )
+}
