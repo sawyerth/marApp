@@ -1,40 +1,33 @@
 function(input, output, session) {
     #######################################################################
-    # Generate a report for genetic diversity conservation for download
-    report <- eventReactive(input$go0, {
-        req(input$structure_slider, input$mode0)
-
-        params <- list(
-            mode = input$mode0,
-            structure = input$structure_slider,
-            aloss = input$habitat_loss,
-            gtarg = input$gd_target
+    # Conservation estimator. The report is shown with regular shiny tags (no
+    # file is written); a standalone HTML copy is generated only when the user
+    # clicks "Download report", straight into the download's temp path.
+    con_est <- eventReactive(input$go0, {
+        req(input$mode0)
+        isloss <- input$mode0 == "estimate loss"
+        prop <- if (isloss) input$habitat_loss else input$gd_target
+        validate(
+            need(is.numeric(prop) && !is.na(prop) && prop >= 0 && prop <= 1, "Please enter a proportion between 0 and 1."),
+            need(isloss || input$structure_slider > 0, "Population structure (z) must be above 0 to build goals.")
         )
-
-        out_html <- "report.html"
-        rmarkdown::render(
-            input = con_reports[input$mode0],
-            output_file = out_html,
-            params = params,
-            envir = new.env(parent = globalenv())
-        )
-        return(out_html)
+        con_estimate(input$mode0, input$structure_slider, input$habitat_loss, input$gd_target)
     })
 
-    observeEvent(input$go0, {
-        output$reportUI <- renderUI({
-            withMathJax(includeHTML(report()))
-        })
+    output$con_plot <- renderPlot(con_plot(con_est()))
 
-        output$downloadReport <- downloadHandler(
-            filename = function() {
-                paste0("Report_", Sys.Date(), ".html")
-            },
-            content = function(file) {
-                file.copy(report(), file)
-            }
-        )
+    output$reportUI <- renderUI({
+        withMathJax(con_report_tags(con_est(), plotOutput("con_plot")))
     })
+
+    output$downloadReport <- downloadHandler(
+        filename = function() {
+            paste0("Report_", Sys.Date(), ".html")
+        },
+        content = function(file) {
+            con_report_save(con_est(), file)
+        }
+    )
 
     #######################################################################
     # renderUI for Upload data input selection
@@ -149,6 +142,15 @@ function(input, output, session) {
             sfsvec <- sfslist()[[model]]
             data.frame(AC = as.numeric(names(sfsvec)), model = model, value = as.numeric(sfsvec))
         }) %>% dplyr::bind_rows()
+        # The neutral expectation theta/k is an expected number of sites, so it
+        # falls below 1 at high allele counts (and is 0 at k = 0). On a log y-axis
+        # those bins would plot as negative values (or -Inf), implying fewer than
+        # one site; observed counts are integers, so nothing below 1 can be seen
+        # in the data either. Omit them, as the plot.sfs() method in the mar
+        # package effectively does.
+        if (isTRUE(input$log_sfs_y)) {
+            forplot <- forplot[forplot$value >= 1, ]
+        }
         pp <- ggplot(data = forplot, mapping = aes(x = AC, y = value, fill = model, color = model, group = model))
         if (input$sfs_plottype %in% c("bar", "both")) {
             pp <- pp + geom_col(position = "dodge", alpha = if (input$sfs_plottype == "both") 0.5 else 1)
@@ -412,15 +414,5 @@ function(input, output, session) {
         terra::plot(sm, add = T, col = SAMPLEMAP_PAL, legend.mar = 3, legend.args = list(text = "# of genomes", side = 2))
         rr[setdiff(gm()$maps$cellid, extl[[input$a_ext]])] <- 1
         terra::plot(rr, add = T, col = "black", legend = FALSE)
-    })
-
-    session$onSessionEnded(function() {
-        tempfiles <- c(
-            list.files(pattern = "^mardf"), list.files(pattern = "^extdf"), list.files(pattern = "report.html"),
-            list.files(pattern = "^Report.+html$")
-        )
-        if (length(tempfiles) > 0) {
-            sapply(tempfiles, unlink)
-        }
     })
 }
